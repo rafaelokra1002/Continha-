@@ -1,0 +1,11 @@
+# Sistema
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editores
+.vscode/
+.idea/
+
+# Dependências (caso o projeto cresça)
+node_modules/

@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="theme-color" content="#6d5efc" />
+<title>Continha — os gastos da casa, sem complicação</title>
+<style>
+  :root {
+    --bg: #0f1020;
+    --bg-soft: #17182e;
+    --card: #1c1e38;
+    --line: #2c2f57;
+    --text: #eef0ff;
+    --muted: #9aa0c7;
+    --brand: #6d5efc;
+    --brand-2: #a78bfa;
+    --red: #fb7185;
+    --radius: 18px;
+    --shadow: 0 12px 40px rgba(0,0,0,.35);
+    --side-w: 250px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, sans-serif;
+    background: radial-gradient(1200px 700px at 15% -10%, #241a4d 0%, transparent 55%),
+                radial-gradient(1000px 600px at 110% 10%, #10233f 0%, transparent 50%),
+                var(--bg);
+    color: var(--text); min-height: 100%; -webkit-font-smoothing: antialiased;
+  }
+
+  /* App shell */
+  .app { display: grid; grid-template-columns: var(--side-w) 1fr; min-height: 100vh; }
+
+  /* Sidebar */
+  .sidebar {
+    background: rgba(18,19,38,.75); backdrop-filter: blur(12px);
+    border-right: 1px solid var(--line); padding: 24px 16px;
+    display: flex; flex-direction: column; position: sticky; top: 0; height: 100vh;
+  }
+  .brand { display: flex; align-items: center; gap: 12px; padding: 0 8px 24px; }
+  .logo {
+    width: 44px; height: 44px; border-radius: 14px; display: grid; place-items: center;
+    background: linear-gradient(135deg, var(--brand), var(--brand-2));
+    box-shadow: 0 8px 24px rgba(109,94,252,.45); font-size: 22px;
+  }
+  .brand h1 { font-size: 18px; letter-spacing: -.3px; }
+  .brand p { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+  .nav { display: flex; flex-direction: column; gap: 4px; }
+  .nav-item {
+    display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 12px;
+    color: var(--muted); font-size: 14.5px; font-weight: 600; cursor: pointer; transition: all .15s; border: none;
+    background: none; width: 100%; text-align: left; font-family: inherit;
+  }
+  .nav-item .ni { font-size: 18px; width: 22px; text-align: center; }
+  .nav-item:hover { background: var(--bg-soft); color: var(--text); }
+  .nav-item.active { background: linear-gradient(135deg, rgba(109,94,252,.25), rgba(167,139,250,.15)); color: var(--text); box-shadow: inset 0 0 0 1px rgba(109,94,252,.4); }
+
+  .side-foot { margin-top: auto; padding: 12px 8px 0; }
+  .side-foot label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .6px; font-weight: 700; display: block; margin-bottom: 8px; }
+  .month-pick { width: 100%; background: var(--bg-soft); border: 1px solid var(--line); color: var(--text); padding: 10px 12px; border-radius: 12px; font-size: 14px; font-weight: 600; cursor: pointer; }
+
+  /* Main */
+  main { padding: 30px 34px 60px; max-width: 1000px; }
+  .view-head { margin-bottom: 24px; }
+  .view-head h2 { font-size: 24px; letter-spacing: -.5px; }
+  .view-head p { color: var(--muted); font-size: 13.5px; margin-top: 4px; }
+  .view { display: none; animation: fade .25s ease; }
+  .view.active { display: block; }
+  @keyframes fade { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+  /* Summary cards */
+  .cards { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 14px; margin-bottom: 22px; }
+  .card { background: linear-gradient(180deg, var(--card), var(--bg-soft)); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; }
+  .card.hero { background: linear-gradient(135deg, #5b4bd6, #7c5cff 60%, #9a7bff); border: none; box-shadow: var(--shadow); position: relative; overflow: hidden; }
+  .card.hero::after { content: ""; position: absolute; right: -40px; top: -40px; width: 160px; height: 160px; background: rgba(255,255,255,.12); border-radius: 50%; }
+  .card .label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .6px; font-weight: 700; }
+  .card.hero .label { color: rgba(255,255,255,.8); }
+  .card .value { font-size: 30px; font-weight: 800; margin-top: 8px; letter-spacing: -.5px; }
+  .card .sub { font-size: 12.5px; color: var(--muted); margin-top: 4px; }
+  .card.hero .sub { color: rgba(255,255,255,.85); }
+  .card.mini .value { font-size: 22px; }
+
+  .panel { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 22px; }
+  .panel h3 { font-size: 15px; margin-bottom: 16px; }
+  .panel + .panel { margin-top: 18px; }
+
+  /* Form */
+  .field { margin-bottom: 16px; }
+  .field label { display: block; font-size: 12.5px; color: var(--muted); margin-bottom: 6px; font-weight: 600; }
+  input, select { width: 100%; background: var(--bg-soft); border: 1px solid var(--line); color: var(--text); padding: 12px 14px; border-radius: 12px; font-size: 15px; outline: none; transition: border-color .15s, box-shadow .15s; }
+  input:focus, select:focus { border-color: var(--brand); box-shadow: 0 0 0 3px rgba(109,94,252,.25); }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .cat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .cat { background: var(--bg-soft); border: 1px solid var(--line); border-radius: 12px; padding: 12px 4px; text-align: center; cursor: pointer; font-size: 11.5px; color: var(--muted); transition: all .15s; user-select: none; }
+  .cat .emo { font-size: 22px; display: block; margin-bottom: 4px; }
+  .cat.active { border-color: var(--brand); background: rgba(109,94,252,.18); color: var(--text); }
+  .btn { width: 100%; border: none; border-radius: 12px; padding: 14px; font-size: 15px; font-weight: 700; cursor: pointer; background: linear-gradient(135deg, var(--brand), var(--brand-2)); color: #fff; margin-top: 6px; box-shadow: 0 8px 20px rgba(109,94,252,.4); transition: transform .1s, filter .15s; }
+  .btn:hover { filter: brightness(1.06); }
+  .btn:active { transform: translateY(1px); }
+  .form-wrap { max-width: 520px; }
+
+  /* List */
+  .list { display: flex; flex-direction: column; gap: 8px; }
+  .item { display: flex; align-items: center; gap: 12px; padding: 13px; border-radius: 14px; background: var(--bg-soft); border: 1px solid var(--line); animation: pop .25s ease; }
+  @keyframes pop { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  .item .ic { width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center; font-size: 20px; flex-shrink: 0; }
+  .item .info { flex: 1; min-width: 0; }
+  .item .info .d { font-weight: 600; font-size: 14.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .item .info .m { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .item .amt { font-weight: 800; font-size: 15px; }
+  .item .del { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 18px; padding: 4px 6px; border-radius: 8px; opacity: .6; }
+  .item .del:hover { color: var(--red); background: rgba(251,113,133,.12); opacity: 1; }
+
+  /* Category bars */
+  .catbar { margin-bottom: 14px; }
+  .catbar .top { display: flex; justify-content: space-between; font-size: 13.5px; margin-bottom: 6px; }
+  .catbar .top .r { color: var(--muted); }
+  .track { height: 9px; background: var(--bg-soft); border-radius: 99px; overflow: hidden; }
+  .track > div { height: 100%; border-radius: 99px; transition: width .5s ease; }
+
+  .empty { text-align: center; color: var(--muted); padding: 50px 10px; font-size: 14px; }
+  .empty .big { font-size: 44px; display: block; margin-bottom: 12px; }
+
+  /* Mobile */
+  .topbar { display: none; }
+  @media (max-width: 820px) {
+    .app { grid-template-columns: 1fr; }
+    .sidebar {
+      position: fixed; left: 0; top: 0; z-index: 50; width: 260px; height: 100vh;
+      transform: translateX(-100%); transition: transform .25s ease;
+    }
+    .sidebar.open { transform: none; }
+    .topbar { display: flex; align-items: center; gap: 12px; padding: 14px 18px; border-bottom: 1px solid var(--line); position: sticky; top: 0; background: rgba(15,16,32,.85); backdrop-filter: blur(10px); z-index: 40; }
+    .topbar .menu-btn { background: var(--card); border: 1px solid var(--line); color: var(--text); width: 42px; height: 42px; border-radius: 12px; font-size: 20px; cursor: pointer; }
+    .topbar .tb-title { font-weight: 700; }
+    main { padding: 22px 18px 60px; }
+    .cards { grid-template-columns: 1fr 1fr; }
+    .card.hero { grid-column: 1 / -1; }
+    .row2 { grid-template-columns: 1fr; }
+    .backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 45; }
+    .backdrop.show { display: block; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <div class="logo">💰</div>
+      <div>
+        <h1>Continha</h1>
+        <p>gastos da casa, sem complicação</p>
+      </div>
+    </div>
+    <nav class="nav" id="nav">
+      <button class="nav-item active" data-view="resumo"><span class="ni">📊</span> Resumo</button>
+      <button class="nav-item" data-view="novo"><span class="ni">➕</span> Novo gasto</button>
+      <button class="nav-item" data-view="lancamentos"><span class="ni">🧾</span> Lançamentos</button>
+      <button class="nav-item" data-view="categorias"><span class="ni">🏷️</span> Categorias</button>
+    </nav>
+    <div class="side-foot">
+      <label>Mês</label>
+      <input type="month" id="monthPick" class="month-pick" />
+    </div>
+  </aside>
+  <div class="backdrop" id="backdrop"></div>
+
+  <!-- Content -->
+  <div>
+    <div class="topbar">
+      <button class="menu-btn" id="menuBtn">☰</button>
+      <span class="tb-title">💰 Continha</span>
+    </div>
+    <main>
+      <!-- Resumo -->
+      <section class="view active" id="view-resumo">
+        <div class="view-head"><h2>Resumo</h2><p id="resumoSub">Visão geral dos gastos do mês</p></div>
+        <div class="cards">
+          <div class="card hero">
+            <div class="label">Total do mês</div>
+            <div class="value" id="totalVal">R$ 0,00</div>
+            <div class="sub" id="totalSub">Nenhum gasto ainda</div>
+          </div>
+          <div class="card mini"><div class="label">Lançamentos</div><div class="value" id="countVal">0</div><div class="sub">no mês</div></div>
+          <div class="card mini"><div class="label">Média/dia</div><div class="value" id="avgVal">R$ 0</div><div class="sub">gasto diário</div></div>
+        </div>
+        <div class="panel">
+          <h3>📊 Gastos por categoria</h3>
+          <div id="catBarsResumo"></div>
+        </div>
+      </section>
+
+      <!-- Novo gasto -->
+      <section class="view" id="view-novo">
+        <div class="view-head"><h2>Novo gasto</h2><p>Registre uma despesa da casa</p></div>
+        <div class="panel form-wrap">
+          <form id="form">
+            <div class="field"><label for="desc">Descrição</label><input type="text" id="desc" placeholder="Ex: Feira do mês" required /></div>
+            <div class="row2">
+              <div class="field"><label for="value">Valor (R$)</label><input type="number" id="value" placeholder="0,00" step="0.01" min="0.01" required /></div>
+              <div class="field"><label for="date">Data</label><input type="date" id="date" required /></div>
+            </div>
+            <div class="field"><label>Categoria</label><div class="cat-grid" id="catGrid"></div></div>
+            <button type="submit" class="btn">Adicionar gasto</button>
+          </form>
+        </div>
+      </section>
+
+      <!-- Lançamentos -->
+      <section class="view" id="view-lancamentos">
+        <div class="view-head"><h2>Lançamentos</h2><p id="lancSub">Todas as despesas do mês</p></div>
+        <div class="panel">
+          <div class="list" id="list"></div>
+        </div>
+      </section>
+
+      <!-- Categorias -->
+      <section class="view" id="view-categorias">
+        <div class="view-head"><h2>Categorias</h2><p>Para onde o dinheiro está indo</p></div>
+        <div class="panel">
+          <div id="catBarsFull"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+
+<script>
+  const CATEGORIES = [
+    { id: 'mercado',    name: 'Mercado',   emo: '🛒', color: '#34d399' },
+    { id: 'contas',     name: 'Contas',    emo: '💡', color: '#fbbf24' },
+    { id: 'moradia',    name: 'Moradia',   emo: '🏠', color: '#60a5fa' },
+    { id: 'transporte', name: 'Transporte',emo: '🚗', color: '#f472b6' },
+    { id: 'saude',      name: 'Saúde',     emo: '💊', color: '#fb7185' },
+    { id: 'lazer',      name: 'Lazer',     emo: '🎉', color: '#a78bfa' },
+    { id: 'comida',     name: 'Comida',    emo: '🍔', color: '#fb923c' },
+    { id: 'outros',     name: 'Outros',    emo: '📦', color: '#94a3b8' },
+  ];
+  const catMap = Object.fromEntries(CATEGORIES.map(c => [c.id, c]));
+  const KEY = 'continha.gastos.v1';
+
+  let expenses = JSON.parse(localStorage.getItem(KEY) || '[]');
+  let selectedCat = 'mercado';
+
+  const brl = n => n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  const save = () => localStorage.setItem(KEY, JSON.stringify(expenses));
+  const iso = d => d.toISOString().slice(0, 10);
+
+  const monthPick = document.getElementById('monthPick');
+  const catGrid   = document.getElementById('catGrid');
+  const form      = document.getElementById('form');
+  const today     = new Date();
+
+  monthPick.value = iso(today).slice(0, 7);
+  document.getElementById('date').value = iso(today);
+
+  // Navigation
+  const sidebar = document.getElementById('sidebar');
+  const backdrop = document.getElementById('backdrop');
+  const closeSidebar = () => { sidebar.classList.remove('open'); backdrop.classList.remove('show'); };
+  document.getElementById('menuBtn').onclick = () => { sidebar.classList.add('open'); backdrop.classList.add('show'); };
+  backdrop.onclick = closeSidebar;
+  document.querySelectorAll('.nav-item').forEach(btn => {
+    btn.onclick = () => {
+      document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+      document.getElementById('view-' + btn.dataset.view).classList.add('active');
+      closeSidebar();
+    };
+  });
+
+  // Category picker
+  CATEGORIES.forEach(c => {
+    const el = document.createElement('div');
+    el.className = 'cat' + (c.id === selectedCat ? ' active' : '');
+    el.innerHTML = `<span class="emo">${c.emo}</span>${c.name}`;
+    el.onclick = () => {
+      selectedCat = c.id;
+      document.querySelectorAll('.cat').forEach(x => x.classList.remove('active'));
+      el.classList.add('active');
+    };
+    catGrid.appendChild(el);
+  });
+
+  form.addEventListener('submit', e => {
+    e.preventDefault();
+    const desc  = document.getElementById('desc').value.trim();
+    const value = parseFloat(document.getElementById('value').value);
+    const date  = document.getElementById('date').value;
+    if (!desc || !value || value <= 0 || !date) return;
+    expenses.push({ id: Date.now(), desc, value, date, cat: selectedCat });
+    save();
+    form.reset();
+    document.getElementById('date').value = iso(today);
+    render();
+    // Volta pro resumo mostrando o resultado
+    document.querySelector('.nav-item[data-view="resumo"]').click();
+  });
+
+  function removeExpense(id) {
+    expenses = expenses.filter(e => e.id !== id);
+    save();
+    render();
+  }
+  window.removeExpense = removeExpense;
+  monthPick.addEventListener('change', render);
+
+  function catBarsHtml(list, total) {
+    const byCat = {};
+    list.forEach(e => { byCat[e.cat] = (byCat[e.cat] || 0) + e.value; });
+    const sorted = Object.entries(byCat).sort((a, b) => b[1] - a[1]);
+    if (!sorted.length) return `<p style="color:var(--muted);font-size:13px">Sem dados neste mês.</p>`;
+    return sorted.map(([id, val]) => {
+      const c = catMap[id]; const pct = total ? (val / total * 100) : 0;
+      return `<div class="catbar">
+        <div class="top"><span>${c.emo} ${c.name}</span><span class="r">${brl(val)} · ${pct.toFixed(0)}%</span></div>
+        <div class="track"><div style="width:${pct}%;background:${c.color}"></div></div>
+      </div>`;
+    }).join('');
+  }
+
+  function render() {
+    const month = monthPick.value;
+    const list = expenses.filter(e => e.date.slice(0, 7) === month)
+      .sort((a, b) => b.date.localeCompare(a.date) || b.id - a.id);
+    const total = list.reduce((s, e) => s + e.value, 0);
+
+    document.getElementById('totalVal').textContent = brl(total);
+    document.getElementById('countVal').textContent = list.length;
+    const [y, m] = month.split('-').map(Number);
+    const daysInMonth = new Date(y, m, 0).getDate();
+    const isCurrent = month === iso(today).slice(0, 7);
+    const daysElapsed = isCurrent ? today.getDate() : daysInMonth;
+    document.getElementById('avgVal').textContent = brl(total / daysElapsed).replace(/\,\d{2}$/, '');
+    document.getElementById('totalSub').textContent = list.length
+      ? `${list.length} ${list.length === 1 ? 'gasto registrado' : 'gastos registrados'}` : 'Nenhum gasto ainda';
+
+    const monthLabel = new Date(y, m - 1, 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+    document.getElementById('resumoSub').textContent = 'Visão geral de ' + monthLabel;
+    document.getElementById('lancSub').textContent = list.length + ' despesa(s) em ' + monthLabel;
+
+    document.getElementById('catBarsResumo').innerHTML = catBarsHtml(list, total);
+    document.getElementById('catBarsFull').innerHTML = catBarsHtml(list, total);
+
+    const listEl = document.getElementById('list');
+    if (!list.length) {
+      listEl.innerHTML = `<div class="empty"><span class="big">🗒️</span>Nenhum lançamento neste mês.<br>Adicione um gasto em "Novo gasto".</div>`;
+      return;
+    }
+    listEl.innerHTML = list.map(e => {
+      const c = catMap[e.cat] || catMap.outros;
+      const dstr = new Date(e.date + 'T00:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
+      return `<div class="item">
+        <div class="ic" style="background:${c.color}22;color:${c.color}">${c.emo}</div>
+        <div class="info"><div class="d">${escapeHtml(e.desc)}</div><div class="m">${c.name} · ${dstr}</div></div>
+        <div class="amt">${brl(e.value)}</div>
+        <button class="del" onclick="removeExpense(${e.id})" title="Excluir">✕</button>
+      </div>`;
+    }).join('');
+  }
+
+  function escapeHtml(s) {
+    return s.replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+  }
+
+  render();
+</script>
+</body>
+</html>
