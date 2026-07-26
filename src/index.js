@@ -41,14 +41,14 @@ async function handleApi(request, env, url, path) {
     if (month && /^\d{4}-\d{2}$/.test(month)) {
       const start = `${month}-01`;
       rows = await sql`
-        select id, description, amount, spent_on, category
+        select id, description, amount, spent_on, category, settled
         from expenses
         where spent_on >= ${start}::date
           and spent_on < (${start}::date + interval '1 month')
         order by spent_on desc, id desc`;
     } else {
       rows = await sql`
-        select id, description, amount, spent_on, category
+        select id, description, amount, spent_on, category, settled
         from expenses order by spent_on desc, id desc`;
     }
     return json(rows.map(toClient));
@@ -69,8 +69,21 @@ async function handleApi(request, env, url, path) {
     const [row] = await sql`
       insert into expenses (description, amount, spent_on, category)
       values (${desc}, ${value}, ${date}::date, ${cat})
-      returning id, description, amount, spent_on, category`;
+      returning id, description, amount, spent_on, category, settled`;
     return json(toClient(row), 201);
+  }
+
+  // PATCH /api/expenses/:id  -> dar/tirar baixa (pago)
+  const patch = path.match(/^\/api\/expenses\/(\d+)$/);
+  if (patch && method === 'PATCH') {
+    const id = Number(patch[1]);
+    const body = await request.json().catch(() => ({}));
+    const settled = Boolean(body.settled);
+    const [row] = await sql`
+      update expenses set settled = ${settled} where id = ${id}
+      returning id, description, amount, spent_on, category, settled`;
+    if (!row) return json({ error: 'Gasto nao encontrado' }, 404);
+    return json(toClient(row));
   }
 
   // DELETE /api/expenses/:id
@@ -92,5 +105,6 @@ function toClient(row) {
     // spent_on pode vir como Date ou string; normaliza para YYYY-MM-DD
     date: typeof row.spent_on === 'string' ? row.spent_on.slice(0, 10) : new Date(row.spent_on).toISOString().slice(0, 10),
     cat: row.category,
+    settled: Boolean(row.settled),
   };
 }

@@ -113,8 +113,18 @@
   .item .info .d { font-weight: 600; font-size: 14.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .item .info .m { font-size: 12px; color: var(--muted); margin-top: 2px; }
   .item .amt { font-weight: 800; font-size: 15px; }
-  .item .del { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 18px; padding: 4px 6px; border-radius: 8px; opacity: .6; }
-  .item .del:hover { color: var(--red); background: rgba(251,113,133,.12); opacity: 1; }
+  .item .baixa { display: grid; place-items: center; width: 36px; height: 36px; background: rgba(52,211,153,.12); border: 1px solid rgba(52,211,153,.3); color: var(--green); cursor: pointer; font-size: 16px; font-weight: 800; border-radius: 10px; flex-shrink: 0; transition: all .15s; }
+  .item .baixa:hover { background: var(--green); color: #08251b; }
+  .item .baixa.on { background: var(--green); color: #08251b; box-shadow: 0 4px 12px rgba(52,211,153,.35); }
+  .item .baixa:active { transform: scale(.92); }
+  .item .del { display: grid; place-items: center; width: 36px; height: 36px; background: rgba(251,113,133,.12); border: 1px solid rgba(251,113,133,.25); color: var(--red); cursor: pointer; font-size: 16px; border-radius: 10px; flex-shrink: 0; transition: all .15s; }
+  .item .del:hover { background: var(--red); color: #fff; }
+  .item .del:active { transform: scale(.92); }
+  .item.settled { opacity: .72; }
+  .item.settled .info .d { text-decoration: line-through; text-decoration-color: var(--muted); }
+  .tag { display: inline-block; font-size: 10.5px; font-weight: 700; padding: 1px 7px; border-radius: 99px; margin-left: 4px; vertical-align: middle; }
+  .tag.pago { background: rgba(52,211,153,.18); color: var(--green); }
+  .tag.pend { background: rgba(251,191,36,.16); color: var(--amber); }
 
   .catbar { margin-bottom: 14px; }
   .catbar .top { display: flex; justify-content: space-between; font-size: 13.5px; margin-bottom: 6px; }
@@ -246,6 +256,11 @@
       const r = await fetch('/api/expenses/' + id, { method: 'DELETE' });
       if (!r.ok) throw new Error('remove');
     },
+    async setSettled(id, settled) {
+      const r = await fetch('/api/expenses/' + id, { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ settled }) });
+      if (!r.ok) throw new Error('settle');
+      return r.json();
+    },
   };
   const cache = {
     all: () => JSON.parse(localStorage.getItem(CACHE_KEY) || '[]'),
@@ -253,6 +268,7 @@
     forMonth: (month) => cache.all().filter(e => e.date.slice(0, 7) === month).sort((a, b) => b.date.localeCompare(a.date) || b.id - a.id),
     upsertMonth: (month, list) => { const rest = cache.all().filter(e => e.date.slice(0, 7) !== month); cache.setAll([...rest, ...list]); },
     add: (item) => cache.setAll([...cache.all(), item]),
+    update: (id, patch) => cache.setAll(cache.all().map(e => e.id === id ? { ...e, ...patch } : e)),
     remove: (id) => cache.setAll(cache.all().filter(e => e.id !== id)),
   };
 
@@ -335,12 +351,24 @@
     goTo('resumo');
   });
 
-  async function removeExpense(id) {
+  async function removeExpense(id, desc) {
+    const nome = desc ? `"${desc}"` : 'este gasto';
+    if (!confirm(`Excluir ${nome}? Essa ação não pode ser desfeita.`)) return;
     try { await api.remove(id); setStatus(true); } catch { setStatus(false); }
     cache.remove(id);
     await loadMonth();
   }
   window.removeExpense = removeExpense;
+
+  async function toggleSettled(id, current) {
+    const settled = !current;
+    // atualiza na hora (otimista)
+    const it = items.find(e => e.id === id); if (it) it.settled = settled;
+    render();
+    try { await api.setSettled(id, settled); setStatus(true); } catch { setStatus(false); }
+    cache.update(id, { settled });
+  }
+  window.toggleSettled = toggleSettled;
   monthPick.addEventListener('change', loadMonth);
 
   // ---- Render ----
@@ -370,8 +398,10 @@
     const isCurrent = month === iso(today).slice(0, 7);
     const daysElapsed = isCurrent ? today.getDate() : daysInMonth;
     document.getElementById('avgVal').textContent = brl(total / daysElapsed).replace(/\,\d{2}$/, '');
-    document.getElementById('totalSub').textContent = list.length
-      ? `${list.length} ${list.length === 1 ? 'gasto registrado' : 'gastos registrados'}` : 'Nenhum gasto ainda';
+    const pago = list.filter(e => e.settled).reduce((s, e) => s + e.value, 0);
+    const pendente = total - pago;
+    document.getElementById('totalSub').innerHTML = list.length
+      ? `✓ ${brl(pago)} pago · ⏳ ${brl(pendente)} pendente` : 'Nenhum gasto ainda';
 
     const monthLabel = new Date(y, m - 1, 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
     document.getElementById('resumoSub').textContent = 'Visão geral de ' + monthLabel;
@@ -388,11 +418,14 @@
     listEl.innerHTML = list.map(e => {
       const c = catMap[e.cat] || catMap.outros;
       const dstr = new Date(e.date + 'T00:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
-      return `<div class="item">
+      const safeDesc = escapeHtml(e.desc).replace(/'/g, "\\'");
+      const badge = e.settled ? `<span class="tag pago">✓ Pago</span>` : `<span class="tag pend">Pendente</span>`;
+      return `<div class="item${e.settled ? ' settled' : ''}">
         <div class="ic" style="background:${c.color}22;color:${c.color}">${c.emo}</div>
-        <div class="info"><div class="d">${escapeHtml(e.desc)}</div><div class="m">${c.name} · ${dstr}</div></div>
+        <div class="info"><div class="d">${escapeHtml(e.desc)}</div><div class="m">${c.name} · ${dstr} ${badge}</div></div>
         <div class="amt">${brl(e.value)}</div>
-        <button class="del" onclick="removeExpense(${e.id})" title="Excluir">✕</button>
+        <button class="baixa${e.settled ? ' on' : ''}" onclick="toggleSettled(${e.id}, ${e.settled})" title="${e.settled ? 'Marcar como pendente' : 'Dar baixa (marcar como pago)'}" aria-label="Dar baixa">✓</button>
+        <button class="del" onclick="removeExpense(${e.id}, '${safeDesc}')" title="Excluir gasto" aria-label="Excluir gasto">🗑️</button>
       </div>`;
     }).join('');
   }
