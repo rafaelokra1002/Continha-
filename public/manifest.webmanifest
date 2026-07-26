@@ -1,0 +1,15 @@
+{
+  "name": "Continha — gastos da casa",
+  "short_name": "Continha",
+  "description": "os gastos da casa, sem complicação",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0f1020",
+  "theme_color": "#6d5efc",
+  "lang": "pt-BR",
+  "icons": [
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
