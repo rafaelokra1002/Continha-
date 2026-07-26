@@ -1,3 +1,16 @@
+# Segredos — NUNCA commitar
+.dev.vars
+.dev.vars.*
+*.env
+.env*
+
+# Dependências
+node_modules/
+
+# Wrangler / Cloudflare
+.wrangler/
+dist/
+
 # Sistema
 .DS_Store
 Thumbs.db
@@ -6,6 +19,3 @@ desktop.ini
 # Editores
 .vscode/
 .idea/
-
-# Dependências (caso o projeto cresça)
-node_modules/

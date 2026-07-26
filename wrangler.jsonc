@@ -1,0 +1,16 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "continha",
+  "main": "src/index.js",
+  "compatibility_date": "2025-07-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS"
+  },
+  "observability": {
+    "enabled": true
+  }
+  // A DATABASE_URL e definida como SECRET, nunca aqui:
+  //   npx wrangler secret put DATABASE_URL
+}
